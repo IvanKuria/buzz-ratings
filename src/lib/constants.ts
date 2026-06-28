@@ -27,5 +27,5 @@ export const pendingProfessorKey = (tabId: number): string =>
   `pendingProfessor_${tabId}`;
 
 // Rate My Professors
-/** Base64 of "School-1078" (UCSC). */
-export const UCSC_SCHOOL_ID = 'U2Nob29sLTEwNzg=';
+/** Base64 of "School-361" (Georgia Institute of Technology, RMP school 361). */
+export const GT_SCHOOL_ID = 'U2Nob29sLTM2MQ==';

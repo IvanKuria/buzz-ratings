@@ -11,7 +11,6 @@ import {
 } from '@/lib/colors';
 import { formatNumber, roundToOneDecimal, roundToWhole } from '@/lib/format';
 import { StarRating } from '@/components/StarRating';
-import SlugRating from '@/components/SlugRating';
 
 interface Props {
   overallRating: number | null;
@@ -23,7 +22,7 @@ interface Props {
 
 /**
  * 2x2 grid of summary rating cards:
- * Quality (with SlugRating), Difficulty, Would Take Again %, Total Reviews.
+ * Quality (with StarRating), Difficulty, Would Take Again %, Total Reviews.
  */
 export default function RatingSummary({
   overallRating,
@@ -90,7 +89,7 @@ export default function RatingSummary({
                 Quality
               </span>
               <div className="flex items-center gap-1.5">
-                <SlugRating rating={overallRating || 0} />
+                <StarRating rating={overallRating} numRatings={numRatings} />
                 <span className="text-lg font-bold leading-none">
                   {overallRating != null
                     ? `${formatNumber(overallRating)}/5`

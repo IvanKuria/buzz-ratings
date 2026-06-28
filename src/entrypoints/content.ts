@@ -28,7 +28,7 @@ const PAGE_LOADERS: Partial<Record<PageType, () => Promise<PageModule>>> = {
 };
 
 export default defineContentScript({
-  matches: ['https://my.ucsc.edu/*', 'https://pisa.ucsc.edu/*'],
+  matches: ['https://registration.banner.gatech.edu/*'],
   runAt: 'document_start',
   allFrames: true,
   cssInjectionMode: 'manifest',

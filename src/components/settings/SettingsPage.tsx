@@ -18,25 +18,25 @@ export default function SettingsPage() {
     );
   }
 
-  const slugUrl =
+  const brandUrl =
     typeof chrome !== 'undefined' && chrome.runtime?.getURL
-      ? chrome.runtime.getURL('icons/sammy/sammy-128.jpg')
+      ? chrome.runtime.getURL('icons/app/logo.png')
       : null;
 
   return (
     <div className="max-w-2xl mx-auto py-10 px-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-8">
-        {slugUrl && (
+        {brandUrl && (
           <img
-            src={slugUrl}
-            alt="Sammy the Slug"
+            src={brandUrl}
+            alt="BuzzRatings"
             className="w-12 h-12 rounded-full"
           />
         )}
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            Rate My Slugs
+            BuzzRatings
           </h1>
           <p className="text-sm text-muted-foreground">
             Customize your experience
@@ -96,9 +96,9 @@ export default function SettingsPage() {
 
       {/* Footer */}
       <div className="mt-8 text-center text-xs text-muted-foreground">
-        <p>Rate My Slugs v2.0 — Made with care at UC Santa Cruz</p>
+        <p>BuzzRatings v1.0 — Made for Georgia Tech</p>
         <a
-          href="mailto:ikuria@ucsc.edu?subject=Rate My Slugs Feedback"
+          href="mailto:ikuria@ucsc.edu?subject=BuzzRatings Feedback"
           className="text-ucsc-blue hover:underline mt-1 inline-block"
         >
           Send feedback

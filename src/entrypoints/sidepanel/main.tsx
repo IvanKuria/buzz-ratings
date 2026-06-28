@@ -142,25 +142,25 @@ function SidePanel() {
 }
 
 function EmptyState() {
-  const slugUrl =
+  const brandUrl =
     typeof chrome !== 'undefined' && chrome.runtime?.getURL
-      ? chrome.runtime.getURL('icons/sammy/sammy-128.jpg')
+      ? chrome.runtime.getURL('icons/app/logo.png')
       : null;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6 text-center">
-      {slugUrl && (
+      {brandUrl && (
         <img
-          src={slugUrl}
-          alt="Sammy the Slug"
+          src={brandUrl}
+          alt="BuzzRatings"
           className="w-20 h-20 rounded-full mb-6 opacity-60"
         />
       )}
       <h2 className="text-lg font-semibold text-foreground mb-2">
-        Rate My Slugs
+        BuzzRatings
       </h2>
       <p className="text-sm text-muted-foreground max-w-[240px]">
-        Click a professor's rating bar on your enrollment page to view their
+        Click a professor's rating bar on the class search page to view their
         details here.
       </p>
       <button

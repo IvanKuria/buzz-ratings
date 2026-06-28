@@ -8,7 +8,7 @@ import Fuse from 'fuse.js';
 import type { FuseResult } from 'fuse.js';
 import { getSettings } from '@/lib/storage/settings';
 import { logger } from '@/lib/logger';
-import { RMP_CACHE_PREFIX, UCSC_SCHOOL_ID } from '@/lib/constants';
+import { RMP_CACHE_PREFIX, GT_SCHOOL_ID } from '@/lib/constants';
 import { getCacheDurationMs } from '@/lib/background/cacheConfig';
 import type {
   RmpEdge,
@@ -324,7 +324,7 @@ export function selectBestRmpMatch(
   name: string | null | undefined,
   options: SelectBestRmpMatchOptions = {}
 ): RmpTeacherNode | null {
-  const { didFallback = false, schoolId = UCSC_SCHOOL_ID } = options;
+  const { didFallback = false, schoolId = GT_SCHOOL_ID } = options;
 
   if (!Array.isArray(edges) || edges.length === 0) return null;
 
@@ -422,7 +422,7 @@ export function selectBestRmpMatch(
  */
 async function fetchRmpSearchResults(
   searchText: string,
-  schoolId: string = UCSC_SCHOOL_ID
+  schoolId: string = GT_SCHOOL_ID
 ): Promise<{ edges: RmpEdge[] | null; didFallback: boolean }> {
   const response = await withConcurrencyLimit(() =>
     fetch(RATE_MY_PROFESSORS_ENDPOINT, {
@@ -436,7 +436,7 @@ async function fetchRmpSearchResults(
         query: RATE_MY_PROFESSORS_QUERY,
         variables: {
           text: searchText,
-          schoolID: schoolId || UCSC_SCHOOL_ID,
+          schoolID: schoolId || GT_SCHOOL_ID,
         },
       }),
     })
@@ -478,7 +478,7 @@ async function fetchRmpSearchResults(
  */
 async function searchWithFallback(
   name: string | null | undefined,
-  schoolId: string = UCSC_SCHOOL_ID
+  schoolId: string = GT_SCHOOL_ID
 ): Promise<RmpSearchResult> {
   if (!name) return { edges: null, didFallback: false, ok: true };
 
@@ -507,7 +507,7 @@ async function searchWithFallback(
       // Try matching with this batch of results
       const match = selectBestRmpMatch(edges, name, {
         didFallback,
-        schoolId: schoolId || UCSC_SCHOOL_ID,
+        schoolId: schoolId || GT_SCHOOL_ID,
       });
 
       if (match) {
@@ -548,7 +548,7 @@ const inFlightLookups = new Map<string, Promise<RmpData | null>>();
 export async function fetchCachedRateMyProfessorData(
   uID: string | null | undefined,
   name: string,
-  schoolId: string = UCSC_SCHOOL_ID
+  schoolId: string = GT_SCHOOL_ID
 ): Promise<RmpData | null> {
   if (!uID) {
     return null;

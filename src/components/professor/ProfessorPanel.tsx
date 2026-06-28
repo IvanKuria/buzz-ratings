@@ -120,10 +120,10 @@ export default function ProfessorPanel({
       }
     : settings.sections;
 
-  // Slug logo URL
-  const slugLogoUrl =
+  // Brand logo URL
+  const brandLogoUrl =
     typeof chrome !== 'undefined' && chrome.runtime?.getURL
-      ? chrome.runtime.getURL('icons/sammy/slug.png')
+      ? chrome.runtime.getURL('icons/app/logo.png')
       : null;
 
   return (
@@ -135,11 +135,11 @@ export default function ProfessorPanel({
           'border-b bg-background/80 backdrop-blur-xl'
         )}
       >
-        {slugLogoUrl && (
-          <img src={slugLogoUrl} alt="UCSC Slug" className="size-6" />
+        {brandLogoUrl && (
+          <img src={brandLogoUrl} alt="BuzzRatings" className="size-6" />
         )}
         <h2 className="text-sm font-semibold tracking-tight flex-1">
-          Rate My Slugs
+          BuzzRatings
         </h2>
         <button
           onClick={() => chrome.runtime.openOptionsPage()}
@@ -262,7 +262,7 @@ export default function ProfessorPanel({
                 className="flex justify-center pt-4 pb-6"
               >
                 <a
-                  href="mailto:ikuria@ucsc.edu?subject=Rate My Slugs Feedback"
+                  href="mailto:ikuria@ucsc.edu?subject=BuzzRatings Feedback"
                   className={cn(
                     'text-xs text-muted-foreground',
                     'hover:text-foreground transition-colors',
