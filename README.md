@@ -1,14 +1,13 @@
 <div align="center">
 
-<img src="assets/icon-rounded.png" alt="Rate My Slugs icon" width="120" height="120" />
+<img src="assets/icon-rounded.png" alt="BuzzRatings icon" width="120" height="120" />
 
-# Rate My Slugs
+# BuzzRatings
 
-Professor ratings, grade distributions, and detailed profiles, shown right where you browse UCSC courses on MyUCSC.
+Rate My Professors ratings and grade distributions, shown right where you browse Georgia Tech courses on OSCAR.
 
-[![Chrome Web Store](https://img.shields.io/badge/Chrome%20Web%20Store-Install-4285F4.svg)](https://chromewebstore.google.com/detail/rate-my-slugs/ddmahbdpmhbeohjjblfopgggdbfieboo)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.0.0-success.svg)](https://github.com/IvanKuria/rate-my-slugs/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-success.svg)](https://github.com/IvanKuria/buzz-ratings/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-orange.svg)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![Built with WXT](https://img.shields.io/badge/built%20with-WXT-67217A.svg)](https://wxt.dev)
 
@@ -16,47 +15,40 @@ Professor ratings, grade distributions, and detailed profiles, shown right where
 
 ## Overview
 
-Rate My Slugs is a Chrome extension for UCSC students. It pulls Rate My Professors ratings, campus directory details, and historical grade distributions directly into the MyUCSC enrollment experience, so you can size up a class without leaving the page or juggling browser tabs.
+BuzzRatings is a Chrome extension for Georgia Tech students. It pulls Rate My Professors ratings and historical grade distributions directly into the OSCAR "Browse Classes" experience, so you can size up a class without leaving the page or juggling browser tabs.
 
-## Screenshots
-
-Inline ratings on the search results page. Every class shows the professor's rating, review count, and would-retake percentage at a glance.
-
-![Search results with inline professor ratings](assets/screenshot-search-results.png)
-
-Click "Details" on any class to open a side panel with the full professor profile: contact info, department, Rate My Professors scores, top tags, reviews, and grade distribution.
-
-![Professor profile side panel](assets/screenshot-side-panel.png)
+It works on GT's public class search — no login required — so you can browse and compare instructors before you ever sign in to register.
 
 ## Features
 
-- **Inline ratings.** See professor ratings on search results, shopping cart, and enrolled classes pages without any extra clicks.
-- **Grade distributions.** View historical grade breakdowns for a given professor and course combination.
-- **Professor profiles.** Open a side panel with full details: contact info, department, research interests, Rate My Professors reviews, and more.
-- **Smart search.** Multi-strategy name matching with fallback searches finds professors even when MyUCSC lists abbreviated or unusual name formats.
-- **Fast.** Lazy-loaded modules, concurrent data preloading, and one-week caching keep repeat visits instant.
-- **Privacy first.** All data is stored locally. No analytics, no tracking, no data collection.
-
-## Install
-
-**Chrome Web Store:** [Rate My Slugs](https://chromewebstore.google.com/detail/rate-my-slugs/ddmahbdpmhbeohjjblfopgggdbfieboo)
-
-**Manual install:**
-
-1. Download the [latest release](https://github.com/IvanKuria/rate-my-slugs/releases).
-2. Unzip the file.
-3. Open `chrome://extensions/` and enable **Developer mode**.
-4. Click **Load unpacked** and select the unzipped folder.
+- **Inline ratings.** Every section in the Browse Classes results gets a rating bar showing the professor's Rate My Professors score, review count, and would-retake percentage.
+- **Grade distributions.** View historical grade breakdowns and average GPA per instructor and course, powered by [Course Critique](https://critique.gatech.edu).
+- **Professor profiles.** Click "Details" to open a side panel with the full Rate My Professors profile: quality, difficulty, would-take-again, top tags, and recent reviews.
+- **Smart matching.** Multi-strategy name matching handles Banner's "Last, First" instructor format and resolves it against the right RMP professor.
+- **Fast.** Lazy-loaded modules and one-week caching keep repeat visits instant.
+- **Privacy first.** All cached data is stored locally. No analytics, no tracking, no data collection.
 
 ## How It Works
 
-Navigate to any MyUCSC enrollment page. The extension automatically detects professor names and renders an inline rating bar:
+Open OSCAR → **Browse Classes**, pick a term, and run a search. BuzzRatings detects each class section and renders an inline rating bar beneath it:
 
 ```
-Sammy 4.4 (33)    85% would retake    Details ->
+★ 4.4 (33)    85% would retake    Details ->
 ```
 
-Click **Details** to open the side panel with the full professor profile, including Rate My Professors reviews, campus directory info, and grade distributions.
+Click **Details** to open the side panel with the full professor profile, including Rate My Professors reviews, department, and the Course Critique grade distribution.
+
+> Browse Classes is publicly accessible at
+> `registration.banner.gatech.edu` without signing in, so BuzzRatings works for prospective students and during open browsing — not just inside registration.
+
+## Install
+
+> Not yet on the Chrome Web Store. Manual install for now:
+
+1. Clone or download this repo.
+2. Run `npm install && npm run build`.
+3. Open `chrome://extensions/` and enable **Developer mode**.
+4. Click **Load unpacked** and select the `.output/chrome-mv3` folder.
 
 ## Tech Stack
 
@@ -67,48 +59,49 @@ Click **Details** to open the side panel with the full professor profile, includ
 | Charts | [Recharts](https://recharts.org) |
 | Animation | [Framer Motion](https://motion.dev) |
 | Search | [Fuse.js](https://fusejs.io) (fuzzy name matching) |
-| APIs | Rate My Professors GraphQL, UCSC Campus Directory |
+| APIs | Rate My Professors GraphQL, Course Critique |
 | Extension | Chrome Manifest V3, Side Panel API |
 
 ## Development
 
 ```bash
-git clone https://github.com/IvanKuria/rate-my-slugs.git
-cd rate-my-slugs
+git clone https://github.com/IvanKuria/buzz-ratings.git
+cd buzz-ratings
 npm install
 npm run dev
 ```
 
 Then load `.output/chrome-mv3-dev` as an unpacked extension in Chrome.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full guide, project structure, and how to make changes.
-
 ## Architecture
 
+Georgia Tech's class search runs on Ellucian Banner SSB — a single-page app that renders results from a JSON endpoint into a responsive (FooTable) grid. Rather than scrape the shifting table cells, BuzzRatings taps the data the page already loads and joins it to rows by their stable `data-id`.
+
 ```
-Content Script           Background SW               Side Panel
---------------           ------------                ----------
-Detect page type    -->  Fetch RMP (GraphQL)    -->  Professor profile
-Extract names       -->  Fetch Campus Directory -->  Grade distribution
-Render rating bar   -->  Cache in storage       -->  Reviews carousel
-                         Match best professor        Settings
+MAIN-world script         Content script (isolated)      Background SW              Side Panel
+-----------------         -------------------------      ------------              ----------
+Tap searchResults JSON -> Join JSON id -> tr[data-id] -> Fetch RMP (GraphQL)   -> Professor profile
+(instructor, course)      Inject rating bar per row      Match best professor      Grade distribution
+                          Open side panel on "Details" -> Cache in storage         Reviews carousel
 ```
 
-- **Content script** runs on `my.ucsc.edu` and `pisa.ucsc.edu`. It detects pages, extracts professor names, and renders the inline rating bar.
-- **Background service worker** handles all API calls, caching, and professor name matching.
-- **Side panel** displays the full professor profile when "Details" is clicked.
+- **MAIN-world interceptor** (`bannerData.content.ts`) runs in the page context to read Banner's own `searchResults` responses (read-only) and forwards each section's instructor + course to the content script.
+- **Content script** (`content.ts`, isolated world) joins that data to result rows by `data-id` and renders the inline rating bar — independent of how FooTable collapses columns.
+- **Background service worker** handles Rate My Professors GraphQL calls, name matching, and caching.
+- **Side panel** displays the full professor profile, including the Course Critique grade distribution, when "Details" is clicked.
 
 ## Privacy
 
 - All cached data is stored locally in `chrome.storage.local`.
 - No analytics or telemetry.
-- Network requests go only to `ratemyprofessors.com`, `campusdirectory.ucsc.edu`, and `rate-my-slugs-server.onrender.com` (grade data).
-- Permissions are scoped to UCSC domains only.
+- Network requests go only to `ratemyprofessors.com` and the Course Critique API.
+- Permissions are scoped to `registration.banner.gatech.edu`.
 
-## Contributing
+## Credits
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions, project structure, and guidelines.
+Grade distribution data comes from [Course Critique](https://critique.gatech.edu), maintained by GT's Student Government Association. Adapted from [Rate My Slugs](https://github.com/IvanKuria/rate-my-slugs) (UC Santa Cruz).
 
 ## License
 
 MIT. See [LICENSE](LICENSE) for details.
+</content>
