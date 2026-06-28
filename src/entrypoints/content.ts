@@ -39,6 +39,11 @@ const sections = new Map<string, BannerSection>();
  * RMP cache by name (GT has no campus-directory source).
  */
 function fetchProfessorData(name: string): Promise<FetchProfessorDataResponse> {
+  // Bail if the extension was reloaded while this page stayed open (stale
+  // context). The caller treats a rejection as "no data" and removes the bar.
+  if (!chrome.runtime?.id) {
+    return Promise.reject(new Error('Extension context invalidated'));
+  }
   return chrome.runtime.sendMessage({
     action: 'fetchProfessorData',
     ID: 'jdoe',

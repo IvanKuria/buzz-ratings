@@ -20,11 +20,20 @@ interface Props {
  */
 function handleBarClick(professorData: ProfessorData | null): void {
   if (!professorData) return;
+  // If the extension was reloaded while this page stayed open, the content
+  // script's runtime handle is dead ("Extension context invalidated").
+  // Guard + swallow so the click fails quietly instead of throwing; the user
+  // just needs to refresh the page.
+  if (!chrome.runtime?.id) return;
   const message: ShowProfessorMessage = {
     action: 'showProfessor',
     data: { ...professorData },
   };
-  chrome.runtime.sendMessage(message);
+  try {
+    void chrome.runtime.sendMessage(message)?.catch?.(() => {});
+  } catch {
+    /* stale context — ignore; a page refresh re-injects a fresh script */
+  }
 }
 
 /**
