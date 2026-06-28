@@ -1,8 +1,15 @@
 /**
  * @file rating-bar.css
  * Minimal inline rating bar — flat design, no gradients.
- * Injected into UCSC enrollment pages via content script.
+ * Injected into the Georgia Tech Banner class-search results grid.
  */
+
+/* ── Injected rating-bar row in the Banner results table ── */
+.rms-bar-row > .rms-bar-cell {
+  padding: 2px 12px 8px;
+  background: transparent;
+  border: none;
+}
 
 /* ── Container ── */
 .rms-rating-bar {

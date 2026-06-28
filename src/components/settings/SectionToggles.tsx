@@ -14,11 +14,6 @@ const sectionItems: {
   description: string;
 }[] = [
   {
-    key: 'campusInfo',
-    label: 'Campus Directory Info',
-    description: 'Photo, department, contact details',
-  },
-  {
     key: 'rmpRatings',
     label: 'RateMyProfessors Ratings',
     description: 'Quality, difficulty, tags',

@@ -11,7 +11,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   accentColor: 'ucsc-blue', // "ucsc-blue" | "ucsc-gold" | "custom"
   viewMode: 'expanded', // "expanded" | "compact"
   sections: {
-    campusInfo: true,
     rmpRatings: true,
     gradeDistribution: true,
     reviews: true,

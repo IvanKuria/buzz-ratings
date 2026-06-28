@@ -8,7 +8,6 @@ export type AccentColor = 'ucsc-blue' | 'ucsc-gold' | 'custom';
 export type ViewMode = 'expanded' | 'compact';
 
 export interface SettingsSections {
-  campusInfo: boolean;
   rmpRatings: boolean;
   gradeDistribution: boolean;
   reviews: boolean;

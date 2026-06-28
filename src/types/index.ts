@@ -9,5 +9,4 @@ export * from './grades';
 export * from './settings';
 export * from './professor';
 export * from './messages';
-export * from './pages';
-export * from './json-data';
+export * from './banner';

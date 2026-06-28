@@ -8,8 +8,6 @@ import { useSettings } from '@/lib/hooks/useSettings';
 import { stagger, professorSwitch } from '@/lib/animations';
 import { getFirst } from '@/lib/format';
 import ProfessorHeader from '@/components/professor/ProfessorHeader';
-import ContactInfo from '@/components/professor/ContactInfo';
-import ExpandedDetails from '@/components/professor/ExpandedDetails';
 import RatingSummary from '@/components/professor/RatingSummary';
 import RatingTags from '@/components/professor/RatingTags';
 import ReviewCarousel from '@/components/professor/ReviewCarousel';
@@ -40,13 +38,7 @@ export default function ProfessorPanel({
   // Derive display data from raw API/LDAP fields
 
   const name = getFirst(apiData?.cn) || instructorName || 'Unknown Professor';
-  const department = getFirst(apiData?.ucscpersonpubdepartmentnumber);
   const division = getFirst(apiData?.ucscpersonpubdivision);
-  const email = getFirst(apiData?.mail);
-  const phone = getFirst(apiData?.telephonenumber);
-  const officeHours = getFirst(apiData?.ucscpersonpubofficehours);
-  const researchInterest = getFirst(apiData?.ucscpersonpubresearchinterest);
-  const courses = localClassesTaught || apiData?.ucscpersonpubfacultycourses;
 
   // Photo URL
   const photoURL = apiData?.jpegphoto;
@@ -57,36 +49,12 @@ export default function ProfessorPanel({
         ? chrome.runtime.getURL('images/default_pfp.png')
         : null;
 
-  // Website
-  let website: string | null = null;
-  const websiteField = apiData?.ucscpersonpubwebsite;
-  if (Array.isArray(websiteField) && websiteField.length > 0) {
-    const raw = websiteField[0];
-    if (typeof raw === 'string' && raw.trim())
-      website = raw.split(' ')[0].trim();
-  } else if (typeof websiteField === 'string' && websiteField.trim()) {
-    website = websiteField.split(' ')[0].trim();
-  }
-
-  // Publications
-  let publicationLinks: string[] = [];
-  const pubField = apiData?.ucscpersonpubselectedpublication;
-  const extractLinks = (html: unknown): string[] => {
-    if (typeof html !== 'string') return [];
-    const links: string[] = [];
-    const hrefPattern = /href="([^"]+)"/g;
-    let m;
-    while ((m = hrefPattern.exec(html)) !== null) links.push(m[1]);
-    return links;
-  };
-  if (Array.isArray(pubField) && pubField.length > 0) {
-    publicationLinks = extractLinks(pubField[0]);
-  } else if (typeof pubField === 'string') {
-    publicationLinks = extractLinks(pubField);
-  }
-
   // RMP data
   const rmpNode = rateMyProfessor;
+  const department =
+    getFirst(apiData?.ucscpersonpubdepartmentnumber) ||
+    rmpNode?.department ||
+    null;
   const overallRating = rmpNode?.avgRatingRounded ?? null;
   const difficulty = rmpNode?.avgDifficultyRounded ?? null;
   // RMP returns -1 for unknown would-take-again; treat any negative as no data.
@@ -112,7 +80,6 @@ export default function ProfessorPanel({
   // Section visibility from settings
   const sections: SettingsSections = settingsLoading
     ? {
-        campusInfo: true,
         rmpRatings: true,
         gradeDistribution: true,
         reviews: true,
@@ -176,28 +143,6 @@ export default function ProfessorPanel({
                   photoSrc={photoSrc}
                 />
               </motion.div>
-
-              {/* Campus Info section */}
-              {sections.campusInfo && apiData && (
-                <>
-                  <motion.div variants={stagger.item} className="mb-2">
-                    <ContactInfo email={email} phone={phone} />
-                  </motion.div>
-
-                  <motion.div variants={stagger.item} className="mb-1">
-                    <ExpandedDetails
-                      officeHours={officeHours}
-                      courses={courses}
-                      researchInterest={researchInterest}
-                      researchTopics={localResearchTopic}
-                      website={website}
-                      publicationLinks={publicationLinks}
-                    />
-                  </motion.div>
-
-                  <Separator className="my-3" />
-                </>
-              )}
 
               {/* RMP Ratings section */}
               {sections.rmpRatings && rmpNode && (

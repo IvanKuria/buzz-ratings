@@ -15,9 +15,17 @@ import type {
   GradeAggregate,
   GradeCacheEntry,
   GradeDistributionEntry,
+  LetterGrade,
+  CourseCritiqueResponse,
+  CourseCritiqueRow,
 } from '@/types';
 
-const API_BASE_URL = 'https://rate-my-slugs-server.onrender.com';
+// Georgia Tech "Course Critique" public API (Georgia Tech SGA). Data is
+// course-scoped; we fetch a whole course and filter to the requested
+// instructor client-side. The manifest grants host_permission for this origin,
+// so the side panel can call it directly.
+const API_BASE_URL =
+  'https://c4citk6s9k.execute-api.us-east-1.amazonaws.com/prod/data';
 
 const GRADE_COLORS: Record<string, string> = {
   'A+': '#22c55e',
@@ -40,7 +48,7 @@ const GRADE_COLORS: Record<string, string> = {
 // with `cache_` so the existing background `clearCache` route (which removes any
 // key starting with `cache_`) wipes them when the user clears data.
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
-const FETCH_TIMEOUT_MS = 12000; // Render free tier cold-starts; give it room
+const FETCH_TIMEOUT_MS = 12000; // API Gateway can be slow on cold paths
 
 type GradeStatus = 'loading' | 'success' | 'error' | 'not_found' | 'no_data';
 
@@ -122,20 +130,42 @@ const GradeDistribution = ({
       return;
     }
 
-    const cacheKey = cacheKeyFor(instructorName, course);
+    // Course Critique is keyed by course; without one we cannot fetch grades.
+    if (!course) {
+      setStatus('no_data');
+      return;
+    }
+    const courseId = course; // narrowed to string for use inside the closure
 
-    // Single attempt with an AbortController-based timeout.
+    const cacheKey = cacheKeyFor(instructorName, courseId);
+
+    // Single attempt with an AbortController-based timeout. We fetch the whole
+    // course from Course Critique, then map + filter to this instructor.
     const attemptFetch = async (): Promise<GradeApiResponse> => {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
       try {
-        const params = new URLSearchParams({ instructor: instructorName });
-        if (course) params.append('course', course);
+        const url = `${API_BASE_URL}/course?courseID=${encodeURIComponent(
+          courseId
+        )}`;
+        const response = await fetch(url, { signal: controller.signal });
 
-        const response = await fetch(`${API_BASE_URL}/api/grades?${params}`, {
-          signal: controller.signal,
-        });
-        return (await response.json()) as GradeApiResponse;
+        // Treat HTTP errors as transient so the retry / error-state path runs
+        // instead of being misreported as "instructor not found".
+        if (!response.ok) {
+          throw new Error(`Course Critique HTTP ${response.status}`);
+        }
+
+        const ccData = (await response.json()) as CourseCritiqueResponse;
+
+        // A missing `raw` array means a malformed / error payload (the API
+        // returns `{ message: ... }` on failure) — retry rather than show
+        // "no data". An empty array is a legitimate "course has no rows".
+        if (!Array.isArray(ccData.raw)) {
+          throw new Error('Course Critique returned no raw data');
+        }
+
+        return mapCourseCritique(ccData, instructorName, courseId);
       } finally {
         clearTimeout(timer);
       }
@@ -297,42 +327,47 @@ const GradeDistribution = ({
         )}
       </header>
 
-      <div className="grade-dist-filters">
-        <div className="grade-dist-filter">
-          <label htmlFor="quarter-filter">Quarter</label>
-          <select
-            id="quarter-filter"
-            value={selectedQuarter}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setSelectedQuarter(e.target.value)
-            }
-          >
-            <option value="ALL">All</option>
-            {quarters.map((q) => (
-              <option key={q} value={q}>
-                {q}
-              </option>
-            ))}
-          </select>
+      {/* Per-term data is available from Course Critique, so the term/year
+          filters are meaningful. Hide them gracefully when there is only a
+          single term (or none) to avoid showing one-option dropdowns. */}
+      {distributions.length > 1 && (
+        <div className="grade-dist-filters">
+          <div className="grade-dist-filter">
+            <label htmlFor="quarter-filter">Term</label>
+            <select
+              id="quarter-filter"
+              value={selectedQuarter}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setSelectedQuarter(e.target.value)
+              }
+            >
+              <option value="ALL">All</option>
+              {quarters.map((q) => (
+                <option key={q} value={q}>
+                  {q}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="grade-dist-filter">
+            <label htmlFor="year-filter">Year</label>
+            <select
+              id="year-filter"
+              value={selectedYear}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setSelectedYear(e.target.value)
+              }
+            >
+              <option value="ALL">All</option>
+              {years.map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <div className="grade-dist-filter">
-          <label htmlFor="year-filter">Year</label>
-          <select
-            id="year-filter"
-            value={selectedYear}
-            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-              setSelectedYear(e.target.value)
-            }
-          >
-            <option value="ALL">All</option>
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      )}
 
       {filteredDistributions.length === 0 ? (
         <div className="grade-dist-empty">
@@ -397,6 +432,203 @@ const GradeDistribution = ({
     </div>
   );
 };
+
+// ── Course Critique mapping ──────────────────────────────────────────────────
+// Course Critique returns per-instructor / per-term / per-section rows where the
+// grade buckets are PERCENTAGES (not counts) and there is no exact student
+// count — only a coarse `class_size_group` text bucket. To feed the existing
+// count-based display logic, we estimate a class size per section and synthesize
+// integer counts from each percentage. Counts stay additive, so the component's
+// own quarter/year re-aggregation keeps working.
+
+// The five letter buckets Course Critique reports (no +/- breakdown exists).
+// Narrower than LetterGrade so it also indexes CourseCritiqueRow safely.
+type CcLetter = 'A' | 'B' | 'C' | 'D' | 'F';
+const CC_LETTERS: CcLetter[] = ['A', 'B', 'C', 'D', 'F'];
+
+/**
+ * Map a `class_size_group` label to a representative student count. Labels carry
+ * the numeric range (e.g. "Small (10-20 students)"); we use the midpoint. The
+ * case varies upstream ("Mid-Size" vs "Mid-size"), so we match on the digits.
+ */
+function estimateClassSize(group: string | null | undefined): number {
+  const g = (group || '').toLowerCase();
+  if (g.includes('fewer than 10')) return 5;
+  if (g.includes('10-20')) return 15;
+  if (g.includes('21-30')) return 25;
+  if (g.includes('31-49')) return 40;
+  if (g.includes('50')) return 65; // "50 students or more"
+  return 25; // sensible default when the bucket is unrecognized
+}
+
+/** Split "Fall 2023" into a quarter/season label and a numeric year. */
+function parseTerm(term: string): { quarter: string; year: number } {
+  const parts = (term || '').trim().split(/\s+/);
+  const year = parseInt(parts[parts.length - 1], 10);
+  const quarter = parts.slice(0, -1).join(' ') || term || '';
+  return { quarter, year: Number.isNaN(year) ? 0 : year };
+}
+
+/** A row is usable for the distribution only if it has at least one grade %. */
+function rowHasGrades(row: CourseCritiqueRow): boolean {
+  return CC_LETTERS.some((g) => row[g] != null) || row.W != null;
+}
+
+/**
+ * Reduce a set of Course Critique rows into a single GradeAggregate. Counts are
+ * synthesized from `percentage * estimatedClassSize`; GPA is the class-size-
+ * weighted average of the per-section GPAs Course Critique reports (which is
+ * more accurate than recomputing from the coarse buckets).
+ */
+function buildAggregate(rows: CourseCritiqueRow[]): GradeAggregate {
+  const letterGrades: Partial<Record<LetterGrade, number>> = {};
+  for (const g of CC_LETTERS) letterGrades[g] = 0;
+
+  let withdrawals = 0;
+  let totalStudents = 0;
+  let gpaWeightedSum = 0;
+  let gpaWeight = 0;
+
+  for (const row of rows) {
+    if (!rowHasGrades(row)) continue;
+    const size = estimateClassSize(row.class_size_group);
+    totalStudents += size;
+
+    for (const g of CC_LETTERS) {
+      const pct = row[g] ?? 0;
+      letterGrades[g] = (letterGrades[g] ?? 0) + Math.round((pct / 100) * size);
+    }
+    withdrawals += Math.round(((row.W ?? 0) / 100) * size);
+
+    if (row.GPA != null) {
+      gpaWeightedSum += row.GPA * size;
+      gpaWeight += size;
+    }
+  }
+
+  const otherGrades: Partial<Record<'W', number>> = {};
+  if (withdrawals > 0) otherGrades.W = withdrawals;
+
+  const gpa =
+    gpaWeight > 0 ? Math.round((gpaWeightedSum / gpaWeight) * 100) / 100 : null;
+
+  return { letterGrades, otherGrades, totalStudents, gpa };
+}
+
+/** Last name + first initial extracted from a name in either order. */
+interface ParsedName {
+  last: string;
+  initial: string;
+}
+
+/**
+ * Parse a name into last name + first initial. Handles both "Last, First"
+ * (Course Critique and our caller's format) and "First Last". Non-letter
+ * characters are stripped so accents/hyphens/periods don't break matching.
+ */
+function parseName(name: string): ParsedName {
+  const normalize = (s: string): string =>
+    s
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[^a-z]/g, '');
+  const trimmed = (name || '').replace(/\s+/g, ' ').trim();
+
+  if (trimmed.includes(',')) {
+    const [lastRaw, firstRaw] = trimmed.split(',', 2).map((p) => p.trim());
+    return {
+      last: normalize(lastRaw),
+      initial: (firstRaw.match(/[a-zA-Z]/)?.[0] || '').toLowerCase(),
+    };
+  }
+
+  const parts = trimmed.split(' ').filter(Boolean);
+  if (parts.length >= 2) {
+    return {
+      last: normalize(parts[parts.length - 1]),
+      initial: (parts[0].match(/[a-zA-Z]/)?.[0] || '').toLowerCase(),
+    };
+  }
+  return { last: normalize(trimmed), initial: '' };
+}
+
+/**
+ * Robust instructor match on last name + first initial. If both sides expose a
+ * first initial they must agree; otherwise a last-name match is accepted.
+ */
+function instructorMatches(target: string, candidate: string): boolean {
+  const a = parseName(target);
+  const b = parseName(candidate);
+  if (!a.last || !b.last || a.last !== b.last) return false;
+  if (a.initial && b.initial) return a.initial === b.initial;
+  return true;
+}
+
+/**
+ * Map a Course Critique course response, filtered to a single instructor, into
+ * the component's display shape. Produces one per-term distribution entry plus
+ * an overall aggregate. Returns a `success: false` payload (mirroring the old
+ * server contract) when the instructor isn't found or has no usable grade data.
+ */
+function mapCourseCritique(
+  data: CourseCritiqueResponse,
+  instructorName: string,
+  course: string
+): GradeApiResponse {
+  const rows = Array.isArray(data.raw) ? data.raw : [];
+  const courseLabel = data.header?.[0]?.full_name || course;
+
+  // Filter to this instructor.
+  const instructorRows = rows.filter((r) =>
+    instructorMatches(instructorName, r.instructor_name)
+  );
+  if (instructorRows.length === 0) {
+    return {
+      success: false,
+      error: 'instructor_not_found',
+      course: courseLabel,
+      distributions: [],
+      aggregated: { letterGrades: {}, otherGrades: {}, totalStudents: 0, gpa: null },
+    };
+  }
+
+  // Keep only rows that actually carry grade data (drop not-yet-posted terms).
+  const usableRows = instructorRows.filter(rowHasGrades);
+  if (usableRows.length === 0) {
+    return {
+      success: false,
+      error: 'no_data',
+      course: courseLabel,
+      distributions: [],
+      aggregated: { letterGrades: {}, otherGrades: {}, totalStudents: 0, gpa: null },
+    };
+  }
+
+  // Group rows by term, then aggregate each term's sections.
+  const byTerm = new Map<string, CourseCritiqueRow[]>();
+  for (const row of usableRows) {
+    const bucket = byTerm.get(row.Term);
+    if (bucket) bucket.push(row);
+    else byTerm.set(row.Term, [row]);
+  }
+
+  const distributions: GradeDistributionEntry[] = [];
+  for (const [term, termRows] of byTerm) {
+    const { quarter, year } = parseTerm(term);
+    distributions.push({ ...buildAggregate(termRows), quarter, year });
+  }
+
+  // Most-recent term first.
+  distributions.sort((a, b) => b.year - a.year);
+
+  return {
+    success: true,
+    course: courseLabel,
+    matchedInstructor: usableRows[0].instructor_name,
+    distributions,
+    aggregated: buildAggregate(usableRows),
+  };
+}
 
 // Helper to aggregate filtered distributions
 function aggregateFiltered(

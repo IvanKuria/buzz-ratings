@@ -6,7 +6,6 @@
  * Supports side panel architecture for professor detail views.
  */
 
-import { fetchCachedCampusDirectoryProfile } from '@/lib/background/campusDirectoryCache';
 import {
   fetchCachedRateMyProfessorData,
   selectBestRmpMatch,
@@ -32,24 +31,17 @@ import type {
  */
 async function fetchProfessorBundle(
   name: string,
-  ID: string | null,
+  _ID: string | null,
   rateMyProfSchoolId?: string
 ): Promise<ProfessorBundle> {
-  const hasUID = ID && ID !== 'jdoe';
-  const rmpCacheKey = hasUID ? ID : `name_${name}`;
-
-  const [campusResponse, rmpResult] = await Promise.all([
-    hasUID
-      ? fetchCachedCampusDirectoryProfile(ID)
-      : Promise.resolve({ data: null, success: false }),
-    fetchCachedRateMyProfessorData(rmpCacheKey, name, rateMyProfSchoolId),
-  ]);
-
-  const campusData = campusResponse?.data ?? null;
-  const campusSuccess =
-    typeof campusResponse?.success === 'boolean'
-      ? campusResponse.success
-      : Boolean(campusData);
+  // GT has no public campus-directory source, so this is RMP-only. We always key
+  // the RMP cache by name (the content script passes the 'jdoe' UID sentinel).
+  const rmpCacheKey = `name_${name}`;
+  const rmpResult = await fetchCachedRateMyProfessorData(
+    rmpCacheKey,
+    name,
+    rateMyProfSchoolId
+  );
 
   // rmpResult is now { edges, didFallback } or legacy array format
   const rmpEdges = Array.isArray(rmpResult)
@@ -93,8 +85,8 @@ async function fetchProfessorBundle(
   }
 
   return {
-    data: campusData,
-    campusSuccess,
+    data: null,
+    campusSuccess: false,
     rateMyProfessor: rateMyProfessorNode,
     reviews,
   };
