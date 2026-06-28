@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/icon-rounded.png" alt="BuzzRatings icon" width="120" height="120" />
+<img src="assets/buzzratings-icon.png" alt="BuzzRatings icon" width="120" height="120" />
 
 # BuzzRatings
 
