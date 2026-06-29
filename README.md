@@ -19,6 +19,16 @@ BuzzRatings is a Chrome extension for Georgia Tech students. It pulls Rate My Pr
 
 It works on GT's public class search — no login required — so you can browse and compare instructors before you ever sign in to register.
 
+## Screenshots
+
+Inline ratings on every section, plus a full professor profile in the side panel — ratings, grade distribution, photo, and reviews.
+
+![BuzzRatings side panel on OSCAR class search](assets/screenshot-sidepanel.png)
+
+Ratings appear directly under each class in the results grid.
+
+![Inline ratings in the class results](assets/screenshot-results.png)
+
 ## Features
 
 - **Inline ratings.** Every section in the Browse Classes results gets a rating bar showing the professor's Rate My Professors score, review count, and would-retake percentage.
