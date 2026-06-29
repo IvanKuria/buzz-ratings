@@ -24,6 +24,7 @@ It works on GT's public class search — no login required — so you can browse
 - **Inline ratings.** Every section in the Browse Classes results gets a rating bar showing the professor's Rate My Professors score, review count, and would-retake percentage.
 - **Grade distributions.** View historical grade breakdowns and average GPA per instructor and course, powered by [Course Critique](https://critique.gatech.edu).
 - **Professor profiles.** Click "Details" to open a side panel with the full Rate My Professors profile: quality, difficulty, would-take-again, top tags, and recent reviews.
+- **Professor photos.** Best-effort headshots pulled from departmental faculty pages (College of Computing / Sciences have the best coverage), with a clean initials fallback when no photo is found.
 - **Smart matching.** Multi-strategy name matching handles Banner's "Last, First" instructor format and resolves it against the right RMP professor.
 - **Fast.** Lazy-loaded modules and one-week caching keep repeat visits instant.
 - **Privacy first.** All cached data is stored locally. No analytics, no tracking, no data collection.
@@ -94,8 +95,8 @@ Tap searchResults JSON -> Join JSON id -> tr[data-id] -> Fetch RMP (GraphQL)   -
 
 - All cached data is stored locally in `chrome.storage.local`.
 - No analytics or telemetry.
-- Network requests go only to `ratemyprofessors.com` and the Course Critique API.
-- Permissions are scoped to `registration.banner.gatech.edu`.
+- Network requests go only to `ratemyprofessors.com`, the Course Critique API, and `*.gatech.edu` departmental pages (for headshots).
+- Permissions are scoped to `registration.banner.gatech.edu` and `*.gatech.edu`.
 
 ## Credits
 

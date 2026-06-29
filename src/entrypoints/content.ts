@@ -123,6 +123,7 @@ async function processRow(tr: HTMLTableRowElement): Promise<void> {
     localResearchTopic: null,
     localClassesTaught: null,
     instructorName: name,
+    instructorEmail: section.instructorEmail,
     course: section.course,
   };
   renderComponent(mount, RatingBar, { professorData, loading: false });

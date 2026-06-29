@@ -18,6 +18,8 @@ export default defineConfig({
       'https://registration.banner.gatech.edu/*',
       'https://www.ratemyprofessors.com/*',
       'https://c4citk6s9k.execute-api.us-east-1.amazonaws.com/*',
+      // Departmental faculty pages (Drupal) for professor headshots.
+      'https://*.gatech.edu/*',
     ],
     web_accessible_resources: [
       {

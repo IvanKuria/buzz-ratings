@@ -27,6 +27,8 @@ export interface ProfessorData {
   localResearchTopic: string | null;
   localClassesTaught: string[] | null;
   instructorName: string;
+  /** Primary instructor gatech.edu email from Banner; used to resolve a photo. */
+  instructorEmail: string | null;
   course: string | null;
 }
 

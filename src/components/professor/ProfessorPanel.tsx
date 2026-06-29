@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useSettings } from '@/lib/hooks/useSettings';
 import { stagger, professorSwitch } from '@/lib/animations';
 import { getFirst } from '@/lib/format';
+import { useProfessorPhoto } from '@/lib/hooks/useProfessorPhoto';
 import ProfessorHeader from '@/components/professor/ProfessorHeader';
 import RatingSummary from '@/components/professor/RatingSummary';
 import RatingTags from '@/components/professor/RatingTags';
@@ -29,9 +30,17 @@ export default function ProfessorPanel({
   localResearchTopic,
   localClassesTaught,
   instructorName,
+  instructorEmail,
   course,
 }: ProfessorData) {
   const { settings, loading: settingsLoading } = useSettings();
+
+  // Best-effort headshot from departmental faculty pages (null -> initials).
+  const photoSrc = useProfessorPhoto(
+    instructorName,
+    instructorEmail,
+    rateMyProfessor?.department ?? null
+  );
 
   if (!apiData && !rateMyProfessor) return null;
 
@@ -39,15 +48,6 @@ export default function ProfessorPanel({
 
   const name = getFirst(apiData?.cn) || instructorName || 'Unknown Professor';
   const division = getFirst(apiData?.ucscpersonpubdivision);
-
-  // Photo URL
-  const photoURL = apiData?.jpegphoto;
-  const photoSrc =
-    photoURL && (photoURL as string).includes('uid')
-      ? photoURL
-      : typeof chrome !== 'undefined' && chrome.runtime?.getURL
-        ? chrome.runtime.getURL('images/default_pfp.png')
-        : null;
 
   // RMP data
   const rmpNode = rateMyProfessor;
