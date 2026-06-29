@@ -6,7 +6,8 @@ Copy/paste fields for the Web Store developer dashboard.
 - **Name:** BuzzRatings
 - **Category:** Education
 - **Language:** English (United States)
-- **Privacy policy URL:** https://github.com/IvanKuria/buzz-ratings/blob/main/PRIVACY.md
+- **Privacy policy URL:** https://ivankuria.github.io/buzz-ratings/privacy.html
+- **Homepage URL (optional):** https://ivankuria.github.io/buzz-ratings/
 
 ## Summary (132 chars max)
 Rate My Professors ratings and grade distributions, right inside Georgia Tech's OSCAR class search.
